@@ -168,45 +168,87 @@ function buildPasta(chopped) {
 function buildOnion(chopped) {
   const g = new THREE.Group();
   if (!chopped) {
-    // Umbi bawang merah, agak pipih
-    const body = sphere('#b06a9e', 0.3, 1, 0.88, 1);
+    // Umbi bawang merah tua, mengkilap, agak pipih
+    const skin = new THREE.MeshStandardMaterial({ color: '#8e1f2f', roughness: 0.25, metalness: 0.05 });
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.3, 32, 24), skin);
+    body.scale.set(1, 0.88, 1);
+    body.castShadow = true;
     g.add(body);
-    // Leher kering meruncing di atas (bukan tunas hijau)
-    const neck = cone('#d9b380', 0.07, 0.22);
+    // Sepuluh garis vertikal kontras mengikuti lekuk umbi, leher ke akar.
+    // Tiap garis dari 3 segmen pendek yang mengikuti profil bola (jari-jari
+    // penampang menyusut ke arah kutub), supaya garis menonjol keluar dari
+    // permukaan di sepanjang lekuk — bukan tenggelam di bagian tengah.
+    const stripeSegs = [
+      { y: 0, r: 0.295 },
+      { y: 0.16, r: 0.235 },
+      { y: -0.16, r: 0.235 },
+    ];
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2;
+      const shade = i % 2 === 0 ? '#d95f6e' : '#6e1420';
+      for (const s of stripeSegs) {
+        const seg = box(shade, 0.03, 0.18, 0.035);
+        seg.position.set(Math.sin(a) * s.r, s.y, Math.cos(a) * s.r);
+        seg.rotation.y = a;
+        g.add(seg);
+      }
+    }
+    // Leher kering merah gelap, sedikit miring
+    const neckMat = new THREE.MeshStandardMaterial({ color: '#7a1a26', roughness: 0.6, metalness: 0.05 });
+    const neck = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 20), neckMat);
     neck.position.y = 0.32;
-    neck.rotation.z = 0.15;
+    neck.rotation.z = 0.2;
+    neck.castShadow = true;
     g.add(neck);
-    // Ujung akar kecil di bawah
-    const root = cylinder('#c9a06a', 0.05, 0.05, 0.06);
+    // Ujung leher kedua, terpelintir ke arah berlawanan
+    const tipMat = new THREE.MeshStandardMaterial({ color: '#8e1f2f', roughness: 0.6, metalness: 0.05 });
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.12, 16), tipMat);
+    tip.position.y = 0.43;
+    tip.rotation.z = -0.25;
+    tip.castShadow = true;
+    g.add(tip);
+    // Cakram akar pucat di bawah umbi
+    const root = cylinder('#d8c49a', 0.05, 0.05, 0.04);
     root.position.y = -0.28;
     g.add(root);
-    // Garis vertikal halus mengikuti permukaan umbi
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2;
-      const line = box('#96548a', 0.012, 0.45, 0.012);
-      line.position.set(Math.sin(a) * 0.285, 0, Math.cos(a) * 0.285);
-      line.rotation.y = a;
-      g.add(line);
+    // Empat rambut akar halus, masing-masing miring ke arah berbeda
+    const hairTilts = [
+      { x: 0.02, z: 0, rx: 0.3, rz: 0 },
+      { x: -0.02, z: 0, rx: -0.3, rz: 0 },
+      { x: 0, z: 0.02, rx: 0, rz: -0.3 },
+      { x: 0, z: -0.02, rx: 0, rz: 0.3 },
+    ];
+    for (const h of hairTilts) {
+      const hair = cone('#e8dcc0', 0.008, 0.07);
+      hair.position.set(h.x, -0.32, h.z);
+      hair.rotation.x = h.rx;
+      hair.rotation.z = h.rz;
+      g.add(hair);
     }
     return g;
   }
-  // Irisan: penampang bawang dengan cincin konsentris
+  // Tiga irisan berbaris, daging pucat dengan cincin ungu kuat
   for (let i = 0; i < 3; i++) {
     const x = (i - 1) * 0.22;
-    const slice = cylinder('#efe4f7', 0.14, 0.14, 0.05);
+    const slice = cylinder('#f2e8f5', 0.14, 0.14, 0.05);
     slice.position.set(x, 0.03, 0);
     g.add(slice);
-    const outer = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.012, 8, 24), mat('#d9c2e8'));
+    const outer = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.014, 8, 24), mat('#8e3a9e'));
     outer.rotation.x = Math.PI / 2;
     outer.position.set(x, 0.06, 0);
     outer.castShadow = true;
     g.add(outer);
-    const inner = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.012, 8, 20), mat('#b06a9e'));
-    inner.rotation.x = Math.PI / 2;
-    inner.position.set(x, 0.06, 0);
-    inner.castShadow = true;
-    g.add(inner);
-    const core = sphere('#d9c2e8', 0.04);
+    const middle = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.012, 8, 20), mat('#b06a9e'));
+    middle.rotation.x = Math.PI / 2;
+    middle.position.set(x, 0.06, 0);
+    middle.castShadow = true;
+    g.add(middle);
+    const edge = new THREE.Mesh(new THREE.TorusGeometry(0.135, 0.01, 8, 28), mat('#7a2a8a'));
+    edge.rotation.x = Math.PI / 2;
+    edge.position.set(x, 0.055, 0);
+    edge.castShadow = true;
+    g.add(edge);
+    const core = sphere('#e8d5f0', 0.035);
     core.position.set(x, 0.06, 0);
     g.add(core);
   }
